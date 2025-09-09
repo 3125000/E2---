@@ -20,7 +20,7 @@ with st.sidebar:
     login_ok = (username in VALID_USERS) and (password == VALID_USERS[username])
 
 if not login_ok:
-    st.info()
+    # 不显示任何文字提示
     st.stop()
 
 st.markdown("🔍 Please fill in the baseline information and up to three sets of hormone monitoring data (some values can be missing).")
@@ -232,4 +232,5 @@ if base_stats is not None and not np.isnan(base_val):
         st.markdown(f"🔢 Your **Baseline E2** value is **{base_val:.0f} pg/mL** (reference P25–P75).")
 else:
     st.warning("⚠️ Baseline E2 missing or no reference data available, cannot display percentile plot.")
+
 
