@@ -25,31 +25,50 @@ if not login_ok:
 
 st.markdown("🔍 Please fill in the baseline information and up to three sets of hormone monitoring data (some values can be missing).")
 
+# ========== 1) 模型与资源加载 ==========
 from pathlib import Path
+import joblib
 
-# 找到 app.py 所在目录
 BASE_DIR = Path(__file__).resolve().parent
+MODEL_DIR = BASE_DIR   # 👈 因为你的 .pkl 文件就在仓库根目录
 
-# 模型目录：优先环境变量 MODEL_DIR，否则使用仓库里的 final_models/
-MODEL_DIR = Path(os.getenv("MODEL_DIR", str(BASE_DIR / "final_models")))
+EXPECTED_FILES = [
+    "reg_start_model.pkl",
+    "reg_total_model.pkl",
+    "clf_drug_model.pkl",
+    "clf_protocol_model.pkl",
+    "reg_trigger_model.pkl",
+    "reg_days_model.pkl",
+    "drug_encoder.pkl",
+    "protocol_encoder.pkl",
+    "e2_percentiles.pkl",
+]
 
-# 统一为“bundle”结构：{"pipeline": pipe, "features": [...]}
-def load_bundle(name):
+# 检查文件是否齐全
+missing = [f for f in EXPECTED_FILES if not (MODEL_DIR / f).exists()]
+if missing:
+    st.error("❌ 缺少模型文件:\n" + "\n".join(f"- {m}" for m in missing))
+    st.stop()
+
+def load_bundle(name: str):
     path = MODEL_DIR / name
     bundle = joblib.load(path)
     return bundle["pipeline"], bundle["features"]
 
-# 6 个模型（2 回归-核心，2 分类-核心，2 回归-核心+动态）
-reg_start_model,     F_START   = load_bundle("reg_start_model.pkl")
-reg_total_model,     F_TOTAL   = load_bundle("reg_total_model.pkl")
-clf_drug_model,      F_DRUG    = load_bundle("clf_drug_model.pkl")
-clf_protocol_model,  F_PROTO   = load_bundle("clf_protocol_model.pkl")
-reg_trigger_model,   F_TRIG    = load_bundle("reg_trigger_model.pkl")   # ✅ 连续 Trigger Day
-reg_days_model,      F_DAYS    = load_bundle("reg_days_model.pkl")
+# 6 个模型
+reg_start_model,     F_START = load_bundle("reg_start_model.pkl")
+reg_total_model,     F_TOTAL = load_bundle("reg_total_model.pkl")
+clf_drug_model,      F_DRUG  = load_bundle("clf_drug_model.pkl")
+clf_protocol_model,  F_PROTO = load_bundle("clf_protocol_model.pkl")
+reg_trigger_model,   F_TRIG  = load_bundle("reg_trigger_model.pkl")
+reg_days_model,      F_DAYS  = load_bundle("reg_days_model.pkl")
 
 # 2 个编码器
-drug_encoder     = joblib.load(os.path.join(MODEL_DIR, "drug_encoder.pkl"))
-protocol_encoder = joblib.load(os.path.join(MODEL_DIR, "protocol_encoder.pkl"))
+drug_encoder     = joblib.load(MODEL_DIR / "drug_encoder.pkl")
+protocol_encoder = joblib.load(MODEL_DIR / "protocol_encoder.pkl")
+
+# E2 分位信息
+e2_percentiles   = joblib.load(MODEL_DIR / "e2_percentiles.pkl")
 
 # E2 分位信息（只存了统计值，而不是原始数组）
 e2_percentiles   = joblib.load(os.path.join(MODEL_DIR, "e2_percentiles.pkl"))
@@ -232,5 +251,6 @@ if base_stats is not None and not np.isnan(base_val):
         st.markdown(f"🔢 Your **Baseline E2** value is **{base_val:.0f} pg/mL** (reference P25–P75).")
 else:
     st.warning("⚠️ Baseline E2 missing or no reference data available, cannot display percentile plot.")
+
 
 
