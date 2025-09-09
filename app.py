@@ -20,17 +20,22 @@ with st.sidebar:
     login_ok = (username in VALID_USERS) and (password == VALID_USERS[username])
 
 if not login_ok:
-    st.info("请使用账号 **0001–0006**，密码 **123456** 登录。")
+    st.info()
     st.stop()
 
 st.markdown("🔍 Please fill in the baseline information and up to three sets of hormone monitoring data (some values can be missing).")
 
-# ========== 1) 模型与资源加载 ==========
-MODEL_DIR =  r"C:/Users/wyk/Desktop/final_models"
+from pathlib import Path
+
+# 找到 app.py 所在目录
+BASE_DIR = Path(__file__).resolve().parent
+
+# 模型目录：优先环境变量 MODEL_DIR，否则使用仓库里的 final_models/
+MODEL_DIR = Path(os.getenv("MODEL_DIR", str(BASE_DIR / "final_models")))
 
 # 统一为“bundle”结构：{"pipeline": pipe, "features": [...]}
 def load_bundle(name):
-    path = os.path.join(MODEL_DIR, name)
+    path = MODEL_DIR / name
     bundle = joblib.load(path)
     return bundle["pipeline"], bundle["features"]
 
@@ -227,3 +232,4 @@ if base_stats is not None and not np.isnan(base_val):
         st.markdown(f"🔢 Your **Baseline E2** value is **{base_val:.0f} pg/mL** (reference P25–P75).")
 else:
     st.warning("⚠️ Baseline E2 missing or no reference data available, cannot display percentile plot.")
+
